@@ -4,9 +4,18 @@ from pathlib import Path
 from typing import Annotated, Callable
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response, Security
+from fastapi import (
+    APIRouter,
+    Depends,
+    Form,
+    HTTPException,
+    Request,
+    Response,
+    Security,
+    status,
+)
 from fastapi.responses import FileResponse
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from app.internal.auth.authentication import (
     ABRAuth,
@@ -142,6 +151,13 @@ def read_root(
 
 @router.get("/init")
 def read_init(request: Request, session: Annotated[Session, Depends(get_session)]):
+    from sqlalchemy import func
+    from app.internal.models import User
+
+    user_count = session.exec(select(func.count()).select_from(User)).one()
+    if user_count > 0:
+        return BaseUrlRedirectResponse("/")
+
     init_username = Settings().app.init_root_username.strip()
     init_password = Settings().app.init_root_password.strip()
 
@@ -201,6 +217,15 @@ def create_init(
     confirm_password: Annotated[str, Form()],
     session: Annotated[Session, Depends(get_session)],
 ):
+    from sqlalchemy import func
+    from app.internal.models import User
+
+    user_count = session.exec(select(func.count()).select_from(User)).one()
+    if user_count > 0:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Already initialized"
+        )
+
     if username.strip() == "":
         return templates.TemplateResponse(
             "init.html",

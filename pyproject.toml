@@ -54,4 +54,10 @@ profile = "jinja"
 ignore = "H021"
 
 [dependency-groups]
-dev = ["djlint", "pyright", "ruff"]
+dev = [
+    "djlint",
+    "httpx>=0.28.1",
+    "pyright",
+    "pytest>=9.0.2",
+    "ruff",
+]
